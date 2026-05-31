@@ -13,9 +13,10 @@ app = FastAPI(title=settings.app_name, version="1.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://127.0.0.1:5173",
-        "http://localhost:5173",
-    ],
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "https://molidock-pro.vercel.app",
+]
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
