@@ -5,7 +5,6 @@ from app.config import get_settings
 from app.database import Base, engine
 from app.routers import admet, auth, billing, docking, health
 
-
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name, version="1.0.0")
@@ -17,10 +16,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(docking.router)
@@ -32,4 +28,3 @@ app.include_router(billing.router)
 def startup() -> None:
     settings.storage_dir.mkdir(parents=True, exist_ok=True)
     Base.metadata.create_all(bind=engine)
-
