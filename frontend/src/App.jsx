@@ -398,43 +398,58 @@ function ViewerPanel({ job, onError }) {
     setLoadingPose(true);
 
     try {
-      const poseText = await getFileText(job.files.pose);
+  const poseText = await getFileText(job.files.pose);
 
-      viewerRef.current.innerHTML = "";
+  const receptorText = job.files.receptor
+    ? await getFileText(job.files.receptor)
+    : null;
 
-      const viewer = $3Dmol.createViewer(viewerRef.current, {
-        backgroundColor: "black",
-      });
+  viewerRef.current.innerHTML = "";
 
-      viewerInstanceRef.current = viewer;
+  const viewer = $3Dmol.createViewer(viewerRef.current, {
+    backgroundColor: "black",
+  });
 
-      const poseModel = viewer.addModel(poseText, "pdbqt");
+  viewerInstanceRef.current = viewer;
 
-      poseModel.setStyle({}, {
-        stick: {
-          radius: 0.25,
-          colorscheme: "cyanCarbon",
-        },
-        sphere: {
-          scale: 0.25,
-        },
-      });
+  // Load receptor first
+  if (receptorText) {
+    const receptorModel = viewer.addModel(receptorText, "pdbqt");
 
-      viewer.zoomTo();
-      viewer.render();
-
-      setTimeout(() => {
-        viewer.resize();
-        viewer.zoomTo();
-        viewer.render();
-      }, 300);
-    } catch (error) {
-      onError(error.message);
-    } finally {
-      setLoadingPose(false);
-    }
+    receptorModel.setStyle({}, {
+      cartoon: {
+        color: "spectrum",
+      },
+    });
   }
 
+  // Load ligand pose
+  const poseModel = viewer.addModel(poseText, "pdbqt");
+
+  poseModel.setStyle({}, {
+    stick: {
+      radius: 0.25,
+      colorscheme: "cyanCarbon",
+    },
+    sphere: {
+      scale: 0.25,
+    },
+  });
+
+  viewer.zoomTo();
+  viewer.render();
+
+  setTimeout(() => {
+    viewer.resize();
+    viewer.zoomTo();
+    viewer.render();
+  }, 300);
+
+} catch (error) {
+  onError(error.message);
+} finally {
+  setLoadingPose(false);
+}
   useEffect(() => {
     function handleResize() {
       if (viewerInstanceRef.current) {
