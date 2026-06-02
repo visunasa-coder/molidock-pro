@@ -124,6 +124,7 @@ class DockingPipeline:
             "contacts": contacts,
             "warnings": warnings,
             "pose_path": str(pose_path),
+            "receptor_path": str(receptor),
             "report_path": str(report_path),
             "log_path": str(log_path),
             "result_json_path": str(json_path),
