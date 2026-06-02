@@ -64,6 +64,7 @@ class DockingMode(BaseModel):
 
 class JobFileLinks(BaseModel):
     pose: str | None = None
+    receptor: str | None = None
     report: str | None = None
     log: str | None = None
     result_json: str | None = None

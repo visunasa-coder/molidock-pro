@@ -132,11 +132,12 @@ def get_job_file(
     job = owned_job(db, user, job_id)
     result = job.result_json or {}
     path_map = {
-        "pose": job.pose_path,
-        "report": job.report_path,
-        "log": job.log_path,
-        "result-json": result.get("result_json_path", ""),
-    }
+    "pose": job.pose_path,
+    "receptor": result.get("receptor_path", ""),
+    "report": job.report_path,
+    "log": job.log_path,
+    "result-json": result.get("result_json_path", ""),
+}
     if kind not in path_map:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown file type")
     raw_path = path_map[kind] or ""
@@ -170,6 +171,8 @@ def serialize_job(job: DockingJob) -> DockingJobOut:
     files = JobFileLinks()
     if job.pose_path:
         files.pose = f"/dock/{job.id}/files/pose"
+    if result.get("receptor_path"):
+        files.receptor = f"/dock/{job.id}/files/receptor"
     if job.report_path:
         files.report = f"/dock/{job.id}/files/report"
     if job.log_path:
