@@ -389,25 +389,63 @@ function DockingPanel({ onCreated, onError }) {
 
 function ViewerPanel({ job, onError }) {
   const viewerRef = useRef(null);
+  const viewerInstanceRef = useRef(null);
   const [loadingPose, setLoadingPose] = useState(false);
 
   async function loadPose() {
-    if (!job?.files?.pose) return;
+    if (!job?.files?.pose || !viewerRef.current) return;
+
     setLoadingPose(true);
+
     try {
-      const pdbqt = await getFileText(job.files.pose);
+      const poseText = await getFileText(job.files.pose);
+
       viewerRef.current.innerHTML = "";
-      const viewer = $3Dmol.createViewer(viewerRef.current, { backgroundColor: "#05070a" });
-      viewer.addModel(pdbqt, "pdbqt");
-      viewer.setStyle({}, { stick: { radius: 0.2 }, sphere: { scale: 0.25 } });
+
+      const viewer = $3Dmol.createViewer(viewerRef.current, {
+        backgroundColor: "black",
+      });
+
+      viewerInstanceRef.current = viewer;
+
+      const poseModel = viewer.addModel(poseText, "pdbqt");
+
+      poseModel.setStyle({}, {
+        stick: {
+          radius: 0.25,
+          colorscheme: "cyanCarbon",
+        },
+        sphere: {
+          scale: 0.25,
+        },
+      });
+
       viewer.zoomTo();
       viewer.render();
+
+      setTimeout(() => {
+        viewer.resize();
+        viewer.zoomTo();
+        viewer.render();
+      }, 300);
     } catch (error) {
       onError(error.message);
     } finally {
       setLoadingPose(false);
     }
   }
+
+  useEffect(() => {
+    function handleResize() {
+      if (viewerInstanceRef.current) {
+        viewerInstanceRef.current.resize();
+        viewerInstanceRef.current.render();
+      }
+    }
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   return (
     <section className="viewer-layout">
