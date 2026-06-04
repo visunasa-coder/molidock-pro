@@ -377,11 +377,6 @@ function DockingPanel({ onCreated, onError }) {
         <textarea value={ligandSmiles} onChange={(event) => setLigandSmiles(event.target.value)} rows={3} />
       </label>
 
-      <div className="form-grid six">
-        {["center_x", "center_y", "center_z", "size_x", "size_y", "size_z"].map((key) => (
-          <Field key={key} label={labelFor(key)} value={form[key]} onChange={(value) => setValue(key, value)} />
-        ))}
-      </div>
 
       <div className="form-grid">
         <Field label="Exhaustiveness" value={form.exhaustiveness} onChange={(value) => setValue("exhaustiveness", value)} />
