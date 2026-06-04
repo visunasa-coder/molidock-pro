@@ -6,7 +6,7 @@ MoliDock Pro is a full-stack scaffold for a subscription molecular docking web a
 - FastAPI backend with JWT auth, SQLite/Postgres-ready persistence, per-plan quotas, Stripe checkout scaffolding, async docking jobs, and generated reports.
 - Real engine adapters for AutoDock Vina, Open Babel, and optional receptor preparation tooling.
 
-Important: no code can make molecular docking "errorless." This system is designed to be robust and auditable, and it refuses to fabricate scientific docking scores when Vina is not installed unless `ALLOW_DEMO_DOCKING=true` is explicitly set for demos.
+Important: no code can make molecular docking "errorless." This system is designed to be robust and auditable, and it refuses to fabricate scientific docking scores when Vina is not installed unless `ALLOW_DEMO_DOCKING=false` is explicitly set for demos.
 
 ## Project Layout
 

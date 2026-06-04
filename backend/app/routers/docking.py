@@ -44,8 +44,10 @@ async def create_docking_job(
     user: User = Depends(get_current_user),
 ) -> DockingJobOut:
     ensure_can_start_job(db, user)
+
     if protein_file is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Protein file is required")
+
     if ligand_file is None and not ligand_smiles.strip():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Upload a ligand file or provide SMILES")
 
@@ -61,22 +63,26 @@ async def create_docking_job(
     )
 
     settings = get_settings()
+
     job = DockingJob(
         user_id=user.id,
         protein_name=protein_name.strip()[:255] or "Protein",
         ligand_name=ligand_name.strip()[:255] or "Ligand",
         work_dir="",
     )
+
     db.add(job)
     db.commit()
     db.refresh(job)
 
     work_dir = settings.storage_dir / "jobs" / job.id
     inputs_dir = work_dir / "inputs"
+
     protein = await persist_upload(protein_file, inputs_dir, ALLOWED_PROTEIN_EXTENSIONS)
 
     ligand_path: Path
     ligand_sha256 = ""
+
     if ligand_file is not None:
         ligand = await persist_upload(ligand_file, inputs_dir, ALLOWED_LIGAND_EXTENSIONS)
         ligand_path = ligand.path
@@ -100,24 +106,37 @@ async def create_docking_job(
         "box": box.model_dump(),
         "cpu": settings.max_parallel_cpu,
     }
+
     db.add(job)
     db.commit()
     db.refresh(job)
 
     background_tasks.add_task(execute_docking_job, job.id)
+
     return serialize_job(job)
 
 
 @router.get("", response_model=list[DockingJobOut])
-def list_jobs(db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> list[DockingJobOut]:
+def list_jobs(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> list[DockingJobOut]:
     rows = db.execute(
-        select(DockingJob).where(DockingJob.user_id == user.id).order_by(desc(DockingJob.created_at)).limit(100)
+        select(DockingJob)
+        .where(DockingJob.user_id == user.id)
+        .order_by(desc(DockingJob.created_at))
+        .limit(100)
     ).scalars()
+
     return [serialize_job(job) for job in rows]
 
 
 @router.get("/{job_id}", response_model=DockingJobOut)
-def get_job(job_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)) -> DockingJobOut:
+def get_job(
+    job_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> DockingJobOut:
     job = owned_job(db, user, job_id)
     return serialize_job(job)
 
@@ -131,52 +150,68 @@ def get_job_file(
 ) -> FileResponse:
     job = owned_job(db, user, job_id)
     result = job.result_json or {}
+
     path_map = {
-    "pose": job.pose_path,
-    "receptor": result.get("receptor_path", ""),
-    "report": job.report_path,
-    "log": job.log_path,
-    "result-json": result.get("result_json_path", ""),
-}
+        "pose": job.pose_path,
+        "receptor": result.get("receptor_path", ""),
+        "report": job.report_path,
+        "log": job.log_path,
+        "result-json": result.get("result_json_path", ""),
+    }
+
     if kind not in path_map:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown file type")
+
     raw_path = path_map[kind] or ""
+
     if not raw_path:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File is not available yet")
+
     path = Path(raw_path)
     resolved = assert_inside_storage(path)
+
     if not resolved.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File is missing")
 
     media_type = "text/plain"
     filename = resolved.name
+
     if kind == "result-json":
         media_type = "application/json"
         filename = f"{job.id}-result.json"
+
     if kind == "report":
         media_type = "text/markdown"
         filename = f"{job.id}-report.md"
+
     return FileResponse(resolved, media_type=media_type, filename=filename)
 
 
 def owned_job(db: Session, user: User, job_id: str) -> DockingJob:
     job = db.get(DockingJob, job_id)
+
     if not job or job.user_id != user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Docking job not found")
+
     return job
 
 
 def serialize_job(job: DockingJob) -> DockingJobOut:
     result = job.result_json or {}
     files = JobFileLinks()
+
     if job.pose_path:
         files.pose = f"/dock/{job.id}/files/pose"
+
     if result.get("receptor_path"):
         files.receptor = f"/dock/{job.id}/files/receptor"
+
     if job.report_path:
         files.report = f"/dock/{job.id}/files/report"
+
     if job.log_path:
         files.log = f"/dock/{job.id}/files/log"
+
     if result.get("result_json_path"):
         files.result_json = f"/dock/{job.id}/files/result-json"
 
