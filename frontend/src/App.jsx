@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import * as $3Dmol from "3dmol";
 import {
   Activity,
@@ -77,6 +77,7 @@ export default function App() {
         setBusy(false);
         return;
       }
+
       try {
         const profile = await me();
         setUser(profile);
@@ -87,11 +88,13 @@ export default function App() {
         setBusy(false);
       }
     }
+
     boot();
   }, [loadJobs]);
 
   useEffect(() => {
     if (!selectedJob || terminalStates.has(selectedJob.status)) return undefined;
+
     const handle = window.setInterval(async () => {
       try {
         const next = await getJob(selectedJob.id);
@@ -101,6 +104,7 @@ export default function App() {
         setMessage(error.message);
       }
     }, 2500);
+
     return () => window.clearInterval(handle);
   }, [selectedJob]);
 
@@ -177,8 +181,9 @@ export default function App() {
         )}
 
         {active === "dashboard" && (
-          <Dashboard jobs={jobs} selectedJob={selectedJob} health={systemHealth} onOpenJob={setSelectedJob} />
+          <Dashboard jobs={jobs} selectedJob={selectedJob} health={systemHealth} />
         )}
+
         {active === "docking" && (
           <DockingPanel
             onCreated={(job) => {
@@ -190,6 +195,7 @@ export default function App() {
             onError={setMessage}
           />
         )}
+
         {active === "viewer" && <ViewerPanel job={selectedJob} onError={setMessage} />}
         {active === "admet" && <AdmetPanel onError={setMessage} />}
         {active === "jobs" && (
@@ -213,10 +219,12 @@ function AuthScreen({ onAuth, health: systemHealth }) {
     event.preventDefault();
     setError("");
     setLoading(true);
+
     try {
       if (mode === "register") {
         await register({ email, password, full_name: fullName });
       }
+
       await login(email, password);
       onAuth(await me());
     } catch (err) {
@@ -244,10 +252,12 @@ function AuthScreen({ onAuth, health: systemHealth }) {
               <input value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" />
             </label>
           )}
+
           <label>
             Email
             <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" />
           </label>
+
           <label>
             Password
             <input
@@ -334,12 +344,15 @@ function DockingPanel({ onCreated, onError }) {
   async function submit(event) {
     event.preventDefault();
     setSubmitting(true);
+
     try {
       const body = new FormData();
       Object.entries(form).forEach(([key, value]) => body.set(key, value));
+
       if (proteinFile) body.set("protein_file", proteinFile);
       if (ligandFile) body.set("ligand_file", ligandFile);
       if (ligandSmiles.trim()) body.set("ligand_smiles", ligandSmiles.trim());
+
       const job = await createDockingJob(body);
       onCreated(job);
     } catch (error) {
@@ -353,10 +366,6 @@ function DockingPanel({ onCreated, onError }) {
     <form className="surface docking-form" onSubmit={submit}>
       <PanelTitle icon={FlaskConical} title="Docking setup" />
 
-      <div className="form-grid">
-        <Field label="Protein name" value={form.protein_name} onChange={(value) => setValue("protein_name", value)} />
-        <Field label="Ligand name" value={form.ligand_name} onChange={(value) => setValue("ligand_name", value)} />
-      </div>
 
       <div className="upload-row">
         <FilePicker label="Protein PDB/PDBQT" file={proteinFile} onChange={setProteinFile} required />
@@ -398,58 +407,59 @@ function ViewerPanel({ job, onError }) {
     setLoadingPose(true);
 
     try {
-  const poseText = await getFileText(job.files.pose);
+      const poseText = await getFileText(job.files.pose);
+      const receptorText = job.files.receptor ? await getFileText(job.files.receptor) : null;
 
-  const receptorText = job.files.receptor
-    ? await getFileText(job.files.receptor)
-    : null;
+      viewerRef.current.innerHTML = "";
 
-  viewerRef.current.innerHTML = "";
+      const viewer = $3Dmol.createViewer(viewerRef.current, {
+        backgroundColor: "black",
+      });
 
-  const viewer = $3Dmol.createViewer(viewerRef.current, {
-    backgroundColor: "black",
-  });
+      viewerInstanceRef.current = viewer;
 
-  viewerInstanceRef.current = viewer;
+      if (receptorText) {
+        const receptorModel = viewer.addModel(receptorText, "pdbqt");
+        receptorModel.setStyle(
+          {},
+          {
+            cartoon: {
+              color: "spectrum",
+            },
+          }
+        );
+      }
 
-  // Load receptor first
-  if (receptorText) {
-    const receptorModel = viewer.addModel(receptorText, "pdbqt");
+      const poseModel = viewer.addModel(poseText, "pdbqt");
 
-    receptorModel.setStyle({}, {
-      cartoon: {
-        color: "spectrum",
-      },
-    });
+      poseModel.setStyle(
+        {},
+        {
+          stick: {
+            radius: 0.25,
+            colorscheme: "cyanCarbon",
+          },
+          sphere: {
+            scale: 0.25,
+          },
+        }
+      );
+
+      viewer.zoomTo();
+      viewer.render();
+
+      setTimeout(() => {
+        viewer.resize();
+        viewer.zoomTo();
+        viewer.render();
+      }, 300);
+    } catch (error) {
+      onError(error.message);
+    } finally {
+      setLoadingPose(false);
+    }
   }
 
-  // Load ligand pose
-  const poseModel = viewer.addModel(poseText, "pdbqt");
-
-  poseModel.setStyle({}, {
-    stick: {
-      radius: 0.25,
-      colorscheme: "cyanCarbon",
-    },
-    sphere: {
-      scale: 0.25,
-    },
-  });
-
-  viewer.zoomTo();
-  viewer.render();
-
-  setTimeout(() => {
-    viewer.resize();
-    viewer.zoomTo();
-    viewer.render();
-  }, 300);
-
-} catch (error) {
-  onError(error.message);
-} finally {
-  setLoadingPose(false);
-}
   useEffect(() => {
     function handleResize() {
       if (viewerInstanceRef.current) {
@@ -497,6 +507,7 @@ function AdmetPanel({ onError }) {
   async function submit(event) {
     event.preventDefault();
     setRunning(true);
+
     try {
       setResult(await runAdmet(smiles));
     } catch (error) {
@@ -509,10 +520,12 @@ function AdmetPanel({ onError }) {
   return (
     <form className="surface" onSubmit={submit}>
       <PanelTitle icon={Beaker} title="ADMET descriptors" />
+
       <label className="wide-field">
         SMILES
         <textarea value={smiles} onChange={(event) => setSmiles(event.target.value)} rows={5} />
       </label>
+
       <button className="primary-button" disabled={running || !smiles.trim()}>
         <Play size={18} />
         <span>{running ? "Running" : "Run ADMET"}</span>
@@ -541,6 +554,7 @@ function JobsPanel({ jobs, selectedJob, onSelect, onRefresh }) {
           <span>Refresh</span>
         </button>
       </div>
+
       <div className="table-wrap">
         <table>
           <thead>
@@ -552,6 +566,7 @@ function JobsPanel({ jobs, selectedJob, onSelect, onRefresh }) {
               <th>Created</th>
             </tr>
           </thead>
+
           <tbody>
             {jobs.map((job) => (
               <tr
@@ -570,6 +585,7 @@ function JobsPanel({ jobs, selectedJob, onSelect, onRefresh }) {
             ))}
           </tbody>
         </table>
+
         {jobs.length === 0 && <EmptyState text="No jobs available" />}
       </div>
     </section>
@@ -609,6 +625,7 @@ function BillingPanel({ user, onError }) {
 
 function HealthGrid({ health: systemHealth }) {
   const binaries = systemHealth?.binaries || {};
+
   return (
     <div className="health-grid">
       {["vina", "obabel", "prepare_receptor"].map((key) => (
@@ -636,6 +653,7 @@ function JobSummary({ job }) {
 
 function ContactsTable({ contacts }) {
   if (!contacts.length) return <EmptyState text="No contacts parsed yet" />;
+
   return (
     <div className="table-wrap">
       <table>
@@ -648,6 +666,7 @@ function ContactsTable({ contacts }) {
             <th>Type</th>
           </tr>
         </thead>
+
         <tbody>
           {contacts.map((contact, index) => (
             <tr key={`${contact.residue}-${contact.residue_number}-${index}`}>
@@ -669,6 +688,7 @@ function ContactsTable({ contacts }) {
 
 function FileButtons({ job, onError }) {
   if (!job) return null;
+
   async function download(kind, filename) {
     try {
       await downloadFile(job.files[kind], filename);
@@ -676,12 +696,14 @@ function FileButtons({ job, onError }) {
       onError(error.message);
     }
   }
+
   return (
     <>
       <button className="icon-button" disabled={!job.files?.report} onClick={() => download("report", `${job.id}-report.md`)}>
         <Download size={18} />
         <span>Report</span>
       </button>
+
       <button className="icon-button" disabled={!job.files?.pose} onClick={() => download("pose", `${job.id}-pose.pdbqt`)}>
         <Download size={18} />
         <span>Pose</span>
@@ -746,4 +768,3 @@ function labelFor(key) {
     .map((part) => part[0].toUpperCase() + part.slice(1))
     .join(" ");
 }
-
