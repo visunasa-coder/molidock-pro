@@ -495,7 +495,7 @@ function ViewerPanel({ job, onError }) {
 }
 
 function AdmetPanel({ onError }) {
-  const [smiles, setSmiles] = useState("");
+  const [compound, setCompound] = useState("");
   const [result, setResult] = useState(null);
   const [running, setRunning] = useState(false);
 
@@ -504,7 +504,16 @@ function AdmetPanel({ onError }) {
     setRunning(true);
 
     try {
-      setResult(await runAdmet(smiles));
+      const response = await fetch(
+        `http://127.0.0.1:8010/admet/compound?name=${encodeURIComponent(compound)}`
+      );
+
+      if (!response.ok) {
+        throw new Error("ADMET prediction failed");
+      }
+
+      const data = await response.json();
+      setResult(data);
     } catch (error) {
       onError(error.message);
     } finally {
@@ -514,25 +523,35 @@ function AdmetPanel({ onError }) {
 
   return (
     <form className="surface" onSubmit={submit}>
-      <PanelTitle icon={Beaker} title="ADMET descriptors" />
+      <PanelTitle icon={Beaker} title="ADMET Prediction" />
 
       <label className="wide-field">
-        SMILES
-        <textarea value={smiles} onChange={(event) => setSmiles(event.target.value)} rows={5} />
+        Compound Name
+        <input
+          type="text"
+          value={compound}
+          onChange={(e) => setCompound(e.target.value)}
+          placeholder="e.g. Aspirin, Curcumin, Erinacine A"
+        />
       </label>
 
-      <button className="primary-button" disabled={running || !smiles.trim()}>
+      <button
+        className="primary-button"
+        disabled={running || !compound.trim()}
+      >
         <Play size={18} />
-        <span>{running ? "Running" : "Run ADMET"}</span>
+        <span>{running ? "Running..." : "Run ADMET"}</span>
       </button>
 
       {result && (
         <div className="metric-row admet-grid">
-          {Object.entries(result)
-            .filter(([key]) => !["smiles", "notes"].includes(key))
-            .map(([key, value]) => (
-              <Metric key={key} label={key.replaceAll("_", " ")} value={String(value)} />
-            ))}
+          {Object.entries(result).map(([key, value]) => (
+            <Metric
+              key={key}
+              label={key.replaceAll("_", " ")}
+              value={Array.isArray(value) ? value.join(", ") : String(value)}
+            />
+          ))}
         </div>
       )}
     </form>
