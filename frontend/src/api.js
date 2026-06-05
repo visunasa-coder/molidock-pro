@@ -1,6 +1,6 @@
 export const API_BASE =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8010";
-  
+  import.meta.env.VITE_API_URL || "https://molidock-pro-1.onrender.com";
+
   const TOKEN_KEY = "molidock_access_token";
 
   export function getToken() {
