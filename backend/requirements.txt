@@ -9,4 +9,5 @@ python-jose[cryptography]>=3.3,<4
 stripe>=10,<13
 httpx2>=2.2,<3
 requests>=2.31,<3
+rdkit-pypi>=2022.9.5
 pytest>=8,<9
