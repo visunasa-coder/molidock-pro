@@ -139,8 +139,9 @@ class DockingPipeline:
         output = prepared_dir / "receptor.pdbqt"
 
         if source.suffix.lower() == ".pdbqt":
-            shutil.copyfile(source, output)
-            return output
+    shutil.copyfile(source, output)
+    self._clean_receptor_pdbqt(output)
+    return output
 
         if self.settings.prepare_receptor_binary:
             cmd = self._command(self.settings.prepare_receptor_binary) + [
@@ -173,6 +174,22 @@ class DockingPipeline:
             "Upload a receptor already in PDBQT format, or configure PREPARE_RECEPTOR_BINARY/Open Babel."
         )
 
+        def _clean_receptor_pdbqt(self, path: Path) -> None:
+        bad_tags = ("ROOT", "ENDROOT", "BRANCH", "ENDBRANCH", "TORSDOF")
+
+        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        cleaned = []
+
+        for line in lines:
+            if line.strip().startswith(bad_tags):
+                continue
+            cleaned.append(line)
+
+        path.write_text("\n".join(cleaned) + "\n", encoding="utf-8")
+
+    def _prepare_ligand(self, source: Path, prepared_dir: Path, warnings: list[str]) -> Path:
+        output = prepared_dir / "ligand.pdbqt"
+        
     def _prepare_ligand(self, source: Path, prepared_dir: Path, warnings: list[str]) -> Path:
         output = prepared_dir / "ligand.pdbqt"
 
