@@ -505,7 +505,7 @@ function AdmetPanel({ onError }) {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8010/admet/compound?name=${encodeURIComponent(compound)}`
+        `https://molidock-pro-1.onrender.com/admet/compound?name=${encodeURIComponent(compound)}`
       );
 
       if (!response.ok) {
