@@ -220,6 +220,7 @@ def serialize_job(job: DockingJob) -> DockingJobOut:
         protein_name=job.protein_name,
         ligand_name=job.ligand_name,
         status=job.status,
+        box=result.get("box"),
         best_affinity_kcal_mol=result.get("best_affinity_kcal_mol"),
         modes=result.get("modes", []),
         contacts=result.get("contacts", []),
