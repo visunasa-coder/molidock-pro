@@ -75,6 +75,7 @@ class DockingJobOut(BaseModel):
     protein_name: str
     ligand_name: str
     status: JobStatus
+    box: BoxParams | None = None
     best_affinity_kcal_mol: float | None = None
     modes: list[DockingMode] = []
     contacts: list[Contact] = []
@@ -100,4 +101,3 @@ class ADMETPrediction(BaseModel):
     soluble_signal: Literal["low", "moderate", "high"]
     oral_druglikeness_signal: Literal["weak", "moderate", "strong"]
     notes: list[str]
-

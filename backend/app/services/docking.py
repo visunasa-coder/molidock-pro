@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.database import SessionLocal
 from app.models import DockingJob, JobStatus
+from app.services.grid import resolve_docking_box
 from app.services.pdbqt import validate_ligand_pdbqt, validate_receptor_pdbqt
 from app.services.reports import generate_reports
 
@@ -85,7 +86,8 @@ class DockingPipeline:
         self.settings = settings
 
     def run(self, job: DockingJob) -> dict:
-        payload = job.input_json
+        payload = dict(job.input_json or {})
+        payload["box"] = dict(payload["box"])
 
         work_dir = Path(job.work_dir)
         prepared_dir = work_dir / "prepared"
@@ -97,6 +99,12 @@ class DockingPipeline:
         warnings: list[str] = []
 
         receptor = self._prepare_receptor(Path(payload["protein_path"]), prepared_dir, warnings)
+        payload["box"], generated_grid = resolve_docking_box(payload["box"], receptor)
+        if generated_grid:
+            warnings.append(
+                "Docking grid was generated from the prepared receptor bounding box "
+                "because the submitted grid matched the legacy default."
+            )
         ligand = self._prepare_ligand(Path(payload["ligand_path"]), prepared_dir, warnings)
 
         pose_path = output_dir / "pose.pdbqt"
