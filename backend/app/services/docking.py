@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.database import SessionLocal
 from app.models import DockingJob, JobStatus
+from app.services.pdbqt import validate_ligand_pdbqt, validate_receptor_pdbqt
 from app.services.reports import generate_reports
 
 
@@ -139,9 +140,9 @@ class DockingPipeline:
         output = prepared_dir / "receptor.pdbqt"
 
         if source.suffix.lower() == ".pdbqt":
-    shutil.copyfile(source, output)
-    self._clean_receptor_pdbqt(output)
-    return output
+            shutil.copyfile(source, output)
+            validate_receptor_pdbqt(output)
+            return output
 
         if self.settings.prepare_receptor_binary:
             cmd = self._command(self.settings.prepare_receptor_binary) + [
@@ -153,6 +154,7 @@ class DockingPipeline:
                 "hydrogens",
             ]
             self._run_command(cmd, "receptor preparation")
+            validate_receptor_pdbqt(output)
             return output
 
         if shutil.which(self._command_name(self.settings.obabel_binary)):
@@ -168,33 +170,19 @@ class DockingPipeline:
                 "-h",
             ]
             self._run_command(cmd, "Open Babel receptor conversion")
+            validate_receptor_pdbqt(output)
             return output
 
         raise DockingDependencyError(
             "Upload a receptor already in PDBQT format, or configure PREPARE_RECEPTOR_BINARY/Open Babel."
         )
 
-        def _clean_receptor_pdbqt(self, path: Path) -> None:
-        bad_tags = ("ROOT", "ENDROOT", "BRANCH", "ENDBRANCH", "TORSDOF")
-
-        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
-        cleaned = []
-
-        for line in lines:
-            if line.strip().startswith(bad_tags):
-                continue
-            cleaned.append(line)
-
-        path.write_text("\n".join(cleaned) + "\n", encoding="utf-8")
-
-    def _prepare_ligand(self, source: Path, prepared_dir: Path, warnings: list[str]) -> Path:
-        output = prepared_dir / "ligand.pdbqt"
-        
     def _prepare_ligand(self, source: Path, prepared_dir: Path, warnings: list[str]) -> Path:
         output = prepared_dir / "ligand.pdbqt"
 
         if source.suffix.lower() == ".pdbqt":
             shutil.copyfile(source, output)
+            validate_ligand_pdbqt(output)
             return output
 
         if not shutil.which(self._command_name(self.settings.obabel_binary)):
@@ -212,6 +200,7 @@ class DockingPipeline:
             "-h",
         ]
         self._run_command(cmd, "Open Babel ligand preparation")
+        validate_ligand_pdbqt(output)
         return output
 
     def _run_vina(
