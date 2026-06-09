@@ -8,18 +8,35 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: sqlite:///${{ runner.temp }}/molidock-ci.db
+      STORAGE_DIR: ${{ runner.temp }}/molidock-storage
+      SECRET_KEY: ci-only-signing-key-not-for-production
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: backend/requirements.txt
       - run: pip install -r requirements.txt
-      - run: pytest -q -p no:cacheprovider
+      - name: Run backend tests
+        shell: bash
+        run: |
+          set +e
+          python -m pytest -q -p no:cacheprovider --basetemp="$RUNNER_TEMP/pytest" 2>&1 | tee "$RUNNER_TEMP/pytest.log"
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            message=$(tail -c 30000 "$RUNNER_TEMP/pytest.log")
+            message=${message//'%'/'%25'}
+            message=${message//$'\r'/'%0D'}
+            message=${message//$'\n'/'%0A'}
+            echo "::error title=Backend pytest failed::$message"
+          fi
+          exit "$status"
 
   frontend:
     runs-on: ubuntu-latest
@@ -27,8 +44,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: "20"
           cache: npm
@@ -39,5 +56,14 @@ jobs:
   container:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: docker build -t molidock-pro-backend ./backend
+      - name: Test production image
+        run: >-
+          docker run --rm
+          -e DATABASE_URL=sqlite:////tmp/molidock-ci.db
+          -e STORAGE_DIR=/tmp/molidock-storage
+          -e SECRET_KEY=ci-only-signing-key-not-for-production
+          --entrypoint python
+          molidock-pro-backend
+          -m pytest -q -p no:cacheprovider --basetemp=/tmp/pytest

@@ -134,6 +134,7 @@ Backend:  https://molidock-pro-1.onrender.com
 ```
 
 Set `VITE_API_URL` in Vercel if the backend URL changes. Set `CORS_ORIGINS` in Render to the exact production frontend origins.
+Render is detected automatically and defaults `ENVIRONMENT` to `production`. Set `SECRET_KEY` explicitly in Render for stable login sessions; when it is absent, the service uses a secure process-local key and existing sessions expire on restart.
 
 The free Render service has an ephemeral filesystem. SQLite data and generated artifacts can be lost when the service redeploys or restarts. For durable production use, configure `DATABASE_URL` with persistent Postgres and move generated artifacts to object storage. Free Render Postgres expires after 30 days, so it is suitable only for evaluation.
 

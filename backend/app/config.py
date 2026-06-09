@@ -1,15 +1,25 @@
 from functools import lru_cache
+import os
 from pathlib import Path
+import secrets
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def default_environment() -> str:
+    return "production" if os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID") else "development"
+
+
+def default_secret_key() -> str:
+    return secrets.token_urlsafe(48)
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     app_name: str = "MoliDock Pro API"
-    environment: str = "development"
+    environment: str = Field(default_factory=default_environment)
     api_base_url: str = "http://127.0.0.1:8000"
     frontend_base_url: str = "http://127.0.0.1:5173"
 
@@ -18,9 +28,9 @@ class Settings(BaseSettings):
     cors_origins: str = "http://127.0.0.1:5173,http://localhost:5173"
 
     secret_key: str = Field(
-        default="change-this-before-production",
+        default_factory=default_secret_key,
         min_length=24,
-        description="JWT signing key. Replace in production.",
+        description="JWT signing key. Set explicitly in production for stable sessions.",
     )
     access_token_expire_minutes: int = 60 * 24
 
