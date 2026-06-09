@@ -33,6 +33,19 @@ class Settings(BaseSettings):
     prepare_receptor_binary: str = ""
     allow_demo_docking: bool = False
 
+    iedb_tools_base_url: str = "https://tools-cluster-interface.iedb.org/tools_api"
+    iedb_timeout_seconds: int = 90
+    iedb_max_predictions: int = 20_000
+    iedb_result_limit: int = 500
+    vaccine_max_sequence_aa: int = 5_000
+
+    ncbi_base_url: str = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+    ncbi_blast_url: str = "https://blast.ncbi.nlm.nih.gov/Blast.cgi"
+    ncbi_tool: str = "MoliDockPro"
+    ncbi_email: str = ""
+    ncbi_api_key: str = ""
+    ncbi_timeout_seconds: int = 60
+
     free_monthly_jobs: int = 5
     pro_monthly_jobs: int = 100
     lab_monthly_jobs: int = 1000
@@ -62,4 +75,3 @@ def get_settings() -> Settings:
     settings.storage_dir.mkdir(parents=True, exist_ok=True)
     (settings.storage_dir / "jobs").mkdir(parents=True, exist_ok=True)
     return settings
-

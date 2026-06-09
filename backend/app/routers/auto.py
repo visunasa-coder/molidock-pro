@@ -1,14 +1,16 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 import requests
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.models import DockingJob
+from app.deps import get_current_user
+from app.models import DockingJob, User
 from app.schemas import BoxParams, DockingJobOut
 from app.services.converter import sdf_to_pdbqt, pdb_to_pdbqt
 from app.services.docking import execute_docking_job
 from app.services.grid import predict_grid_from_pdb
+from app.services.subscriptions import ensure_can_start_job
 from app.routers.docking import serialize_job
 
 
@@ -22,9 +24,20 @@ def auto_test():
     }
 
 
-@router.get("/prepare")
-def auto_prepare(protein: str, compound: str):
+@router.post("/prepare")
+def auto_prepare(
+    protein: str,
+    compound: str,
+    user: User = Depends(get_current_user),
+):
+    return _prepare_auto_inputs(protein=protein, compound=compound)
+
+
+def _prepare_auto_inputs(protein: str, compound: str):
     try:
+        settings = get_settings()
+        settings.storage_dir.mkdir(parents=True, exist_ok=True)
+
         cid_url = (
             "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/"
             f"{compound}/cids/JSON"
@@ -45,12 +58,12 @@ def auto_prepare(protein: str, compound: str):
         if sdf_response.status_code != 200:
             raise HTTPException(status_code=404, detail="3D SDF not available")
 
-        sdf_path = f"storage/compound_{cid}.sdf"
+        sdf_path = settings.storage_dir / f"compound_{cid}.sdf"
 
         with open(sdf_path, "w", encoding="utf-8") as f:
             f.write(sdf_response.text)
 
-        ligand_pdbqt = sdf_to_pdbqt(sdf_path)
+        ligand_pdbqt = sdf_to_pdbqt(str(sdf_path))
 
         pdb_query = {
             "query": {
@@ -90,12 +103,12 @@ def auto_prepare(protein: str, compound: str):
         if pdb_response.status_code != 200:
             raise HTTPException(status_code=404, detail="PDB download failed")
 
-        pdb_path = f"storage/{pdb_id}.pdb"
+        pdb_path = settings.storage_dir / f"{pdb_id}.pdb"
 
         with open(pdb_path, "w", encoding="utf-8") as f:
             f.write(pdb_response.text)
 
-        receptor_pdbqt = pdb_to_pdbqt(pdb_path)
+        receptor_pdbqt = pdb_to_pdbqt(str(pdb_path))
 
         grid = predict_grid_from_pdb(pdb_path)
 
@@ -104,13 +117,13 @@ def auto_prepare(protein: str, compound: str):
             "compound": {
                 "query": compound,
                 "cid": cid,
-                "sdf_path": sdf_path,
+                "sdf_path": str(sdf_path),
                 "ligand_pdbqt": ligand_pdbqt,
             },
             "protein": {
                 "query": protein,
                 "pdb_id": pdb_id,
-                "pdb_path": pdb_path,
+                "pdb_path": str(pdb_path),
                 "receptor_pdbqt": receptor_pdbqt,
             },
             "grid": grid,
@@ -123,14 +136,16 @@ def auto_prepare(protein: str, compound: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/dock", response_model=DockingJobOut)
+@router.post("/dock", response_model=DockingJobOut, status_code=status.HTTP_202_ACCEPTED)
 def auto_dock(
     protein: str,
     compound: str,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    prepared = auto_prepare(protein=protein, compound=compound)
+    ensure_can_start_job(db, user)
+    prepared = _prepare_auto_inputs(protein=protein, compound=compound)
 
     settings = get_settings()
     grid = prepared["grid"]
@@ -147,7 +162,7 @@ def auto_dock(
     )
 
     job = DockingJob(
-        user_id=1,
+        user_id=user.id,
         protein_name=prepared["protein"]["pdb_id"],
         ligand_name=compound,
         work_dir="",

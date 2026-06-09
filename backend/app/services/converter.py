@@ -1,7 +1,16 @@
+import shlex
 import subprocess
 from pathlib import Path
 
-OPEN_BABEL = r"C:\Program Files\OpenBabel-3.1.1\obabel.exe"
+from app.config import get_settings
+
+
+def obabel_command() -> list[str]:
+    binary = get_settings().obabel_binary.strip() or "obabel"
+    path = Path(binary)
+    if path.exists():
+        return [str(path)]
+    return shlex.split(binary)
 
 
 def sdf_to_pdbqt(sdf_path: str) -> str:
@@ -10,7 +19,7 @@ def sdf_to_pdbqt(sdf_path: str) -> str:
 
     result = subprocess.run(
         [
-            OPEN_BABEL,
+            *obabel_command(),
             str(input_path),
             "-O",
             str(output_path),
@@ -31,7 +40,7 @@ def pdb_to_pdbqt(pdb_path: str) -> str:
 
     result = subprocess.run(
         [
-            OPEN_BABEL,
+            *obabel_command(),
             str(input_path),
             "-O",
             str(output_path),

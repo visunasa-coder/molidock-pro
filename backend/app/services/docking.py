@@ -221,7 +221,7 @@ class DockingPipeline:
     ) -> dict:
         vina_binary = self.settings.vina_binary
 
-        if not Path(vina_binary).exists():
+        if not Path(vina_binary).exists() and not shutil.which(self._command_name(vina_binary)):
             if self.settings.allow_demo_docking:
                 return self._demo_docking(receptor, ligand, pose_path, log_path)
 

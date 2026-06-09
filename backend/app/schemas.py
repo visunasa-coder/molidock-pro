@@ -101,3 +101,38 @@ class ADMETPrediction(BaseModel):
     soluble_signal: Literal["low", "moderate", "high"]
     oral_druglikeness_signal: Literal["weak", "moderate", "strong"]
     notes: list[str]
+
+
+class VaccineProjectCreate(BaseModel):
+    name: str = Field(default="Candidate vaccine", min_length=1, max_length=255)
+    fasta: str = Field(min_length=1)
+    source_accession: str = Field(default="", max_length=80)
+
+
+class VaccineAnalysisRequest(BaseModel):
+    mhc_i_alleles: list[str] = Field(
+        default=["HLA-A*01:01", "HLA-A*02:01", "HLA-A*03:01", "HLA-A*24:02"],
+        min_length=1,
+        max_length=12,
+    )
+    mhc_ii_alleles: list[str] = Field(
+        default=[
+            "HLA-DRB1*01:01",
+            "HLA-DRB1*04:01",
+            "HLA-DRB1*07:01",
+            "HLA-DRB1*15:01",
+        ],
+        min_length=1,
+        max_length=12,
+    )
+    mhc_i_length: int = Field(default=9, ge=8, le=15)
+    mhc_ii_length: int = Field(default=15, ge=11, le=30)
+    mhc_i_rank_threshold: float = Field(default=1.0, gt=0, le=100)
+    mhc_ii_rank_threshold: float = Field(default=10.0, gt=0, le=100)
+    candidate_limit: int = Field(default=100, ge=1, le=500)
+    include_processing: bool = True
+
+
+class VaccineConstructRequest(BaseModel):
+    candidate_ids: list[str] = Field(min_length=1, max_length=100)
+    add_start_methionine: bool = True

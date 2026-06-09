@@ -3,18 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import Base, engine
-from app.routers import admet, auth, billing, docking, health, pubchem, protein, auto
+from app.routers import admet, auth, auto, billing, docking, health, protein, pubchem, vaccine
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name, version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://molidock-pro.vercel.app",
-],
+    allow_origins=settings.cors_origin_list,
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
@@ -29,6 +25,7 @@ app.include_router(billing.router)
 app.include_router(pubchem.router)
 app.include_router(protein.router)
 app.include_router(auto.router)
+app.include_router(vaccine.router)
 
 @app.on_event("startup")
 def startup() -> None:

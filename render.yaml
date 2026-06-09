@@ -1,0 +1,38 @@
+services:
+  - type: web
+    runtime: docker
+    name: molidock-pro-1
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: API_BASE_URL
+        value: https://molidock-pro-1.onrender.com
+      - key: FRONTEND_BASE_URL
+        value: https://molidock-pro.vercel.app
+      - key: CORS_ORIGINS
+        value: https://molidock-pro.vercel.app
+      - key: DATABASE_URL
+        value: sqlite:///./molidock.db
+      - key: STORAGE_DIR
+        value: /app/storage
+      - key: SECRET_KEY
+        generateValue: true
+      - key: IEDB_TOOLS_BASE_URL
+        value: https://tools-cluster-interface.iedb.org/tools_api
+      - key: IEDB_TIMEOUT_SECONDS
+        value: "90"
+      - key: IEDB_MAX_PREDICTIONS
+        value: "20000"
+      - key: IEDB_RESULT_LIMIT
+        value: "500"
+      - key: VACCINE_MAX_SEQUENCE_AA
+        value: "5000"
+      - key: NCBI_TOOL
+        value: MoliDockPro
+      - key: ALLOW_DEMO_DOCKING
+        value: "false"

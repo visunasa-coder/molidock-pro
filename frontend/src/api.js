@@ -1,5 +1,5 @@
 export const API_BASE =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8010";
+  import.meta.env.VITE_API_URL || "https://molidock-pro-1.onrender.com";
   
   const TOKEN_KEY = "molidock_access_token";
 
@@ -80,6 +80,102 @@ export const API_BASE =
     const body = new FormData();
     body.set("smiles", smiles);
     return request("/admet", { method: "POST", body });
+  }
+
+  export function runAdmetByCompound(name) {
+    return request(`/admet/compound?name=${encodeURIComponent(name)}`);
+  }
+
+  export function runAutoDock(protein, compound) {
+    const params = new URLSearchParams({ protein, compound });
+    return request(`/auto/dock?${params.toString()}`, { method: "POST" });
+  }
+
+  export function runVaccinePlan({ projectName, constructType, fasta }) {
+    const body = new FormData();
+    body.set("project_name", projectName);
+    body.set("construct_type", constructType);
+    body.set("fasta", fasta);
+    return request("/vaccine/plan", { method: "POST", body });
+  }
+
+  export function runMhcPrediction({
+    fasta,
+    mhcClass,
+    alleles,
+    peptideLength,
+    method,
+    rankThreshold,
+  }) {
+    const body = new FormData();
+    body.set("fasta", fasta);
+    body.set("mhc_class", mhcClass);
+    body.set("alleles", alleles);
+    body.set("peptide_length", peptideLength);
+    body.set("method", method);
+    body.set("rank_threshold", rankThreshold);
+    return request("/vaccine/predict/mhc", { method: "POST", body });
+  }
+
+  export function runBcellPrediction({ fasta, method = "Bepipred-2.0" }) {
+    const body = new FormData();
+    body.set("fasta", fasta);
+    body.set("method", method);
+    return request("/vaccine/predict/bcell", { method: "POST", body });
+  }
+
+  export function searchVaccineAntigens(query) {
+    return request(`/vaccine/source/search?query=${encodeURIComponent(query)}`);
+  }
+
+  export function fetchVaccineAntigen(accession) {
+    return request(`/vaccine/source/fetch/${encodeURIComponent(accession)}`);
+  }
+
+  export function createVaccineProject({ name, fasta, sourceAccession = "" }) {
+    return request("/vaccine/projects", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        fasta,
+        source_accession: sourceAccession,
+      }),
+    });
+  }
+
+  export function listVaccineProjects() {
+    return request("/vaccine/projects");
+  }
+
+  export function getVaccineProject(id) {
+    return request(`/vaccine/projects/${id}`);
+  }
+
+  export function analyzeVaccineProject(id, payload = {}) {
+    return request(`/vaccine/projects/${id}/analyze`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  export function buildVaccineConstruct(id, candidateIds) {
+    return request(`/vaccine/projects/${id}/construct`, {
+      method: "POST",
+      body: JSON.stringify({
+        candidate_ids: candidateIds,
+        add_start_methionine: true,
+      }),
+    });
+  }
+
+  export function submitVaccineBlast(id, database = "swissprot") {
+    const body = new FormData();
+    body.set("database", database);
+    return request(`/vaccine/projects/${id}/blast`, { method: "POST", body });
+  }
+
+  export function pollVaccineBlast(id) {
+    return request(`/vaccine/projects/${id}/blast`);
   }
 
   export function createCheckout(plan) {
