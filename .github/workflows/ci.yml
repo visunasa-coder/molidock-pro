@@ -8,10 +8,6 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
-    env:
-      DATABASE_URL: sqlite:///${{ runner.temp }}/molidock-ci.db
-      STORAGE_DIR: ${{ runner.temp }}/molidock-storage
-      SECRET_KEY: ci-only-signing-key-not-for-production
     defaults:
       run:
         working-directory: backend
@@ -25,6 +21,10 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Run backend tests
         shell: bash
+        env:
+          DATABASE_URL: sqlite:///${{ runner.temp }}/molidock-ci.db
+          STORAGE_DIR: ${{ runner.temp }}/molidock-storage
+          SECRET_KEY: ci-only-signing-key-not-for-production
         run: |
           set +e
           python -m pytest -q -p no:cacheprovider --basetemp="$RUNNER_TEMP/pytest" 2>&1 | tee "$RUNNER_TEMP/pytest.log"
