@@ -1785,7 +1785,6 @@ function labelFor(key) {
     .map((part) => part[0].toUpperCase() + part.slice(1))
     .join(" ");
 }
-
 function cleanProteinSequence(value) {
   return value
     .split("\n")

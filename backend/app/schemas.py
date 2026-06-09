@@ -101,8 +101,6 @@ class ADMETPrediction(BaseModel):
     soluble_signal: Literal["low", "moderate", "high"]
     oral_druglikeness_signal: Literal["weak", "moderate", "strong"]
     notes: list[str]
-
-
 class VaccineProjectCreate(BaseModel):
     name: str = Field(default="Candidate vaccine", min_length=1, max_length=255)
     fasta: str = Field(min_length=1)
