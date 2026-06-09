@@ -64,6 +64,7 @@ jobs:
           -e DATABASE_URL=sqlite:////tmp/molidock-ci.db
           -e STORAGE_DIR=/tmp/molidock-storage
           -e SECRET_KEY=ci-only-signing-key-not-for-production
+          -v ${{ github.workspace }}/backend/tests:/app/tests:ro
           --entrypoint python
           molidock-pro-backend
           -m pytest -q -p no:cacheprovider --basetemp=/tmp/pytest
