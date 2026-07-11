@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import Base, engine
-from app.routers import admet, auth, auto, billing, docking, health, protein, pubchem, vaccine
+from app.routers import admet, auth, auto, billing, docking, health, protein, pubchem, vaccine, toxicity
 settings = get_settings()
 
 app = FastAPI(title=settings.app_name, version="1.0.0")
@@ -21,6 +21,7 @@ app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(docking.router)
 app.include_router(admet.router)
+app.include_router(toxicity.router)
 app.include_router(billing.router)
 app.include_router(pubchem.router)
 app.include_router(protein.router)
